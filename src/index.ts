@@ -277,106 +277,7 @@ function joinPaths(...parts: string[]): string {
   }
   
   
- // -------------------------
-// AST Node Base Definition
-// -------------------------
-interface ASTNode {
-    type: string;
-    expression?: any;
-  }
-  
-  // -------------------------
-  // Specific AST Node Definitions
-  // -------------------------
-  interface ExpressionNode extends ASTNode {
-    value: string;
-  }
-  
-  interface BlockNode extends ASTNode {
-    body: ASTNode[];
-  }
-  
-  interface ParameterNode extends ASTNode {
-    dataType: string;
-    name: string;
-    isArray?: boolean;
-    isPointer?: boolean;
-  }
-  
-  interface FunctionDeclarationNode extends ASTNode {
-    name: string;
-    params: ParameterNode[];
-    body: BlockNode;
-  }
-  
-  interface VariableDeclarationNode extends ASTNode {
-    dataType: string;
-    name: string;
-    isArray?: boolean;
-    isPointer?: boolean;
-    initializer?: ExpressionNode;
-  }
-  
-  interface ReturnStatementNode extends ASTNode {
-    expression: ExpressionNode;
-  }
-  
-  interface ExitStatementNode extends ASTNode {
-    exitCode: NumberLiteralNode;
-  }
-  
-  interface NumberLiteralNode extends ASTNode {
-    value: number;
-  }
-  
-  interface IfStatementNode extends ASTNode {
-    condition: ExpressionNode;
-    consequent: BlockNode;
-    alternate?: BlockNode;
-  }
-  
-  interface SwitchStatementNode extends ASTNode {
-    expression: ExpressionNode;
-    cases: (CaseNode | DefaultCaseNode)[];
-  }
-  
-  interface CaseNode extends ASTNode {
-    value: ExpressionNode;
-    body: BlockNode;
-  }
-  
-  interface DefaultCaseNode extends ASTNode {
-    body: BlockNode;
-  }
-  
-  interface ForStatementNode extends ASTNode {
-    initializer: ExpressionNode;
-    condition: ExpressionNode;
-    increment: ExpressionNode;
-    body: BlockNode;
-  }
-  
-  interface WhileStatementNode extends ASTNode {
-    condition: ExpressionNode;
-    body: BlockNode;
-  }
-  
-  interface NamespaceDeclarationNode extends ASTNode {
-    name: string;
-    body: BlockNode;
-  }
-  
-  interface ExpressionStatementNode extends ASTNode {
-    expression: ExpressionNode;
-  }
-  
-  interface SyscallDeclarationNode extends ASTNode {
-    args: ExpressionNode[];
-  }
-  
-  interface ProgramAST {
-    declarations: ASTNode[];
-  }
+
   
   // -------------------------
 // Parser: Builds an AST from tokens using recursive descent parsing
@@ -628,12 +529,21 @@ class Parser {
     }
     
     parseExitStatement(): ExitStatementNode {
-      this.eat("keyword", "EXIT");
-      const codeToken = this.eat("number");
-      const exitCode = parseInt(codeToken.value, 10);
-      this.eat("symbol", ";");
-      return { type: "ExitStatement", exitCode: { type: "NumberLiteral", value: exitCode } };
-    }
+        this.eat("keyword", "EXIT");
+        let exitCode: NumberLiteralNode | ExpressionNode;
+        const token = this.currentToken();
+        if (token.type === "number") {
+            const codeToken = this.eat("number");
+            exitCode = { type: "NumberLiteral", value: parseInt(codeToken.value, 10) };
+        } else if (token.type === "identifier") {
+            const codeToken = this.eat("identifier");
+            exitCode = { type: "Expression", value: codeToken.value };
+        } else {
+            throw new ParseError("Expected a number or variable after EXIT", token, this.fileName);
+        }
+        this.eat("symbol", ";");
+        return { type: "ExitStatement", exitCode };
+      }
     
     parseIfStatement(): IfStatementNode {
       this.eat("keyword", "IF");
@@ -706,20 +616,25 @@ class Parser {
       return { type: "WhileStatement", condition, body };
     }
   }
+
+  async function writeOutputToFile(filePath: string, data: string): Promise<void> {
+    await Bun.write(filePath, data);
+  }
+  
   
   // -------------------------
   // Main Execution
   // -------------------------
   async function main() {
     const includeDirs = ["./includes", "./lib"];
-    // "test.ampl" is used for error reporting.
     const mergedContent = await processUsing("test.ampl", new Set(), includeDirs);
     const tokenizer = new Tokenizer(mergedContent);
     const tokens = await tokenizer.tokenize();
     const parser = new Parser(tokens, "test.ampl");
     try {
       const ast = parser.parseProgram();
-      console.log("AST:", JSON.stringify(ast, null, 2));
+      const outputData = JSON.stringify(ast, null, 2);
+      await writeOutputToFile("output.temp.json", outputData);
     } catch (err) {
       if (err instanceof ParseError) {
         console.error("Parse Error:", err.message);

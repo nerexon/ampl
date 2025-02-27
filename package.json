@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "bun run ./src"
+    "start": "bun run ./src",
+    "compile": "bun run ./src/compiler"
   },
   "devDependencies": {
     "@types/bun": "latest"

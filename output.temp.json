@@ -1,0 +1,54 @@
+{
+  "declarations": [
+    {
+      "type": "VariableDeclaration",
+      "dataType": "INTEGER",
+      "name": "a",
+      "isPointer": false,
+      "isArray": false,
+      "initializer": {
+        "type": "Expression",
+        "value": "1"
+      }
+    },
+    {
+      "type": "VariableDeclaration",
+      "dataType": "INTEGER",
+      "name": "b",
+      "isPointer": false,
+      "isArray": false,
+      "initializer": {
+        "type": "Expression",
+        "value": "2"
+      }
+    },
+    {
+      "type": "FunctionDeclaration",
+      "name": "main",
+      "params": [],
+      "body": {
+        "type": "Block",
+        "body": [
+          {
+            "type": "VariableDeclaration",
+            "dataType": "INTEGER",
+            "name": "c",
+            "isPointer": false,
+            "isArray": false,
+            "initializer": {
+              "type": "Expression",
+              "value": "a"
+            }
+          },
+          {
+            "type": "ExitStatement",
+            "exitCode": {
+              "type": "NumberLiteral",
+              "value": 0
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
